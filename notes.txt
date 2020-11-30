@@ -1,0 +1,10 @@
+1. where will ball be
+    a. run a simulation
+2. where is the best spot to hit the ball
+    a. what is best?
+        i. farthest from their paddle
+        ii. fastest motion
+    b. how to calculate this?
+        i.
+
+ball speed is constant after bouncing
