@@ -79,7 +79,10 @@ def calc_hit(paddle_y, ball_pos, ball_size, ball_vel, paddle_pos, paddle_size, o
 def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
     global prev_other_paddle_pos, prev_ball_pos, prev_ball_vel, prev_best_paddle_y, data, max_vel
     compute_loops = 8
-
+    X_OFFSET = min(paddle_frect.pos[0], other_paddle_frect.pos[0]) + paddle_frect.size[0]
+    TABLE_SIZE = (max(paddle_frect.pos[0], other_paddle_frect.pos[0]) - X_OFFSET - ball_frect.size[0],
+                  table_size[1] - ball_frect.size[1])
+    #print(TABLE_SIZE)
     if not initialized:
         init(table_size)
 

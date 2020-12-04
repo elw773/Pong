@@ -68,7 +68,7 @@ class game_ai:
                 L=p_orientation;I=move_factor;G=vel_y;F=vel_x;E=pos_x;D=pos_y;J=0;H=0
                 while B.paddle_collision(E)and not B.wall_collision(D):
                         H+=1;E-=0.1*F*I;D-=0.1*G*I;J+=1
-                        if H>B.max_loop:break
+                        if H>B.max_loop:print("HEHEHE",B.max_loop);break
                 C=B.get_angle(paddle_loc_y,D+0.5*ball_size[1],L);A=[F,G];A=[math.cos(C)*A[0]-math.sin(C)*A[1],math.sin(C)*A[0]+math.cos(C)*A[1]];A[0]=-A[0];A=[math.cos(-C)*A[0]-math.sin(-C)*A[1],math.cos(-C)*A[1]+math.sin(-C)*A[0]];K=0
                 if L==1:K=1
                 try:

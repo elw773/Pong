@@ -142,7 +142,7 @@ class Ball:
             if self.frect.get_rect().colliderect(wall_rect):
                 c = 0
                 # print "in wall. speed: ", self.speed
-                print("real bounce", [self.frect.pos[0] - 25, self.frect.pos[1]])
+                #print("real bounce", [self.frect.pos[0] - 25, self.frect.pos[1]])
                 while self.frect.get_rect().colliderect(wall_rect):
                     self.frect.move_ip(-.1 * self.speed[0], -.1 * self.speed[1], move_factor)
                     c += 1  # this basically tells us how far the ball has traveled into the wall
@@ -153,12 +153,23 @@ class Ball:
                 while c > 0 or self.frect.get_rect().colliderect(wall_rect):
                     self.frect.move_ip(.1 * self.speed[0], .1 * self.speed[1], move_factor)
                     c -= 1  # move by roughly the same amount as the ball had traveled into the wall
-                print("real bounce", [self.frect.pos[0] - 25, self.frect.pos[1]])
+                #print("real bounce", [self.frect.pos[0] - 25, self.frect.pos[1]])
                 # print "out of wall, position, speed: ", self.frect.pos, self.speed
 
         for paddle in paddles:
             if self.frect.intersect(paddle.frect):
-                print("hit", [self.frect.pos[0], self.frect.pos[1]], self.speed)
+                #print("hit", [self.frect.pos[0] - 25, self.frect.pos[1]], self.speed)
+
+                #import minimax
+                #prediction = minimax.calculate_ball_pos(
+                #    paddles[0].frect.pos[1] - self.frect.size[1] / 2 + paddles[0].frect.size[1] / 2,
+                #    paddles[1].frect.pos[1] - self.frect.size[1] / 2 + paddles[1].frect.size[1] / 2,
+                #   [self.frect.pos[0] - 25, self.frect.pos[1]],
+                #    self.speed,
+                #   (paddles[0].frect.size[0] + self.frect.size[0], paddles[0].frect.size[1] + self.frect.size[1]),
+                #   (15, 15), (375, 265))
+                #print("predict", prediction)
+
                 hit = True
                 long = True
                 if (paddle.facing == 1 and self.get_center()[0] < paddle.frect.pos[0] + paddle.frect.size[0] / 2) or \
@@ -173,6 +184,7 @@ class Ball:
 
                     c += 1
                 theta = paddle.get_angle(self.frect.pos[1] + .5 * self.frect.size[1])
+
 
                 v = self.speed
 
@@ -315,13 +327,7 @@ def game_loop(screen, paddles, ball, table_size, clock_rate, turn_wait_rate, sco
         inv_move_factor = int((ball.speed[0] ** 2 + ball.speed[1] ** 2) ** .5)
 
         if hit:
-            import minimax
-            prediction = minimax.calculate_ball_pos(paddles[0].frect.pos[1] - ball.frect.size[1] / 2 + 35,
-                                                    paddles[1].frect.pos[1] - ball.frect.size[1] / 2 + 35,
-                                                    [ball.frect.pos[0] - 25, ball.frect.pos[1]],
-                                                    ball.speed, (10 + ball.frect.size[0], 70 + ball.frect.size[1]),
-                                                    (15, 15), (375, 265), 1. / inv_move_factor)
-            print("predict", prediction[0] + 25, prediction[1])
+
             hit = False
 
         if inv_move_factor > 0:
@@ -382,9 +388,9 @@ def init_game():
     dust_error = 0.00
     init_speed_mag = 2
     timeout = 0.0001
-    clock_rate = 150
+    clock_rate = 500
     turn_wait_rate = 3
-    score_to_win = 500
+    score_to_win = 5
 
     screen = pygame.display.set_mode(table_size)
     pygame.display.set_caption('PongAIvAI')
@@ -399,9 +405,10 @@ def init_game():
     import pong_ai
     import AIs
     import minified_ai
+    import minimax
 
-    paddles[0].move_getter = pong_ai.pong_ai
-    paddles[1].move_getter = minified_ai.pong_ai
+    paddles[0].move_getter = chaser_ai.pong_ai
+    paddles[1].move_getter = minimax.pong_ai
 
     game_loop(screen, paddles, ball, table_size, clock_rate, turn_wait_rate, score_to_win, 1)
     ball = Ball(table_size, ball_size, paddle_bounce, wall_bounce, dust_error, init_speed_mag)
