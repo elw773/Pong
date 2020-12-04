@@ -1,6 +1,7 @@
 # Ted Pinkerton and Ewan Wai
 
 import math
+import numpy as np
 
 max_angle = 45
 math_pi = math.pi
@@ -8,6 +9,7 @@ paddle_bounce = 1.2
 max_loop = 1000
 
 from timeit import default_timer as timer
+import time
 
 
 def move_to_paddle_x(paddle_x, ball_pos, ball_vel, table_size, direction, move_factor):
@@ -18,6 +20,7 @@ def move_to_paddle_x(paddle_x, ball_pos, ball_vel, table_size, direction, move_f
     while (paddle_x - ball_pos[0]) * direction > 0:
         n += 1
         if(n>max_loop):
+            if debug: print("Max loop moving to paddle")
             break
         wall_y = -1
         if ball_vel[1] > 0:
@@ -64,18 +67,40 @@ def move_to_paddle(hitting_paddle_y, ball_pos, ball_vel, paddle_size, table_size
 
 
 def do_hit(paddle_x, paddle_y, ball_pos, ball_vel, paddle_size, ball_size, table_size, direction, move_factor, hit=False):
+    #res = move_to_paddle(paddle_y, ball_pos, ball_vel, paddle_size, table_size, move_factor)
+
     c = 0
 
-    while (ball_pos[1] > table_size[1] or ball_pos[1] < 0) or \
-            (paddle_x - (paddle_size[0] if direction < 0 else 0) < ball_pos[0] < paddle_x + (
-                    paddle_size[0] if direction > 0 else 0) and
-             paddle_y - paddle_size[1] / 2 < ball_pos[1] < paddle_y + paddle_size[1] / 2):
-        c += 1
-        ball_pos[0] -= ball_vel[0] * 0.1 * move_factor
-        ball_pos[1] -= ball_vel[1] * 0.1 * move_factor
-        #print("adjustin", c)
-        if (c > max_loop):
-            break
+    e = -((ball_pos[0] - paddle_x) // (ball_vel[0] * -0.1 * move_factor))
+
+
+    if ball_vel[1] > 0:
+        wall_y = table_size[1] + 1
+        paddle_y_bound = paddle_y - paddle_size[1] / 2
+    else:
+        wall_y = -1
+        paddle_y_bound = paddle_y + paddle_size[1] / 2
+    d = -((ball_pos[1] - wall_y) // (ball_vel[1] * -0.1 * move_factor))
+    f = -((ball_pos[1] - paddle_y_bound) // (ball_vel[1] * -0.1 * move_factor))
+    if f>0:
+        e = min(e, f)
+    if d>0:
+        e = max(e, d)
+
+    #while (ball_pos[1] > table_size[1] or ball_pos[1] < 0) or \
+    #        (paddle_x - (paddle_size[0] if direction < 0 else 0) < ball_pos[0] < paddle_x + (
+    #                paddle_size[0] if direction > 0 else 0) and
+    #         paddle_y - paddle_size[1] / 2 < ball_pos[1] < paddle_y + paddle_size[1] / 2):
+    #   c += 1
+    #    ball_pos[0] -= ball_vel[0] * 0.1 * move_factor
+    #    ball_pos[1] -= ball_vel[1] * 0.1 * move_factor
+    #    if c > max_loop:
+    #       if debug: print("Max loop adjusting before hit")
+    #        break
+    ball_pos[0] -= ball_vel[0] * 0.1 * move_factor * e
+    ball_pos[1] -= ball_vel[1] * 0.1 * move_factor * e
+
+    c = e
 
     rel_dist_from_c = (ball_pos[1] - paddle_y) / (paddle_size[1] - ball_size[1])
     rel_dist_from_c = min(0.5, rel_dist_from_c)
@@ -105,16 +130,22 @@ def do_hit(paddle_x, paddle_y, ball_pos, ball_vel, paddle_size, ball_size, table
     else:
         ball_vel = (v[0], v[1])
 
-    while c > 0 or (paddle_x - (paddle_size[0] if direction < 0 else 0) < ball_pos[0] < paddle_x + (
-            paddle_size[0] if direction > 0 else 0) and
-                    paddle_y - paddle_size[1] / 2 < ball_pos[1] < paddle_y + paddle_size[
-                        1] / 2):
-        ball_pos[0] += ball_vel[0] * 0.1 * move_factor
-        ball_pos[1] += ball_vel[1] * 0.1 * move_factor
-        c -= 1
+    e = -((ball_pos[0] - paddle_x) // (ball_vel[0] * -0.1 * move_factor))
+    c = max(e, c)
+    ball_pos[0] += ball_vel[0] * 0.1 * move_factor * c
+    ball_pos[1] += ball_vel[1] * 0.1 * move_factor * c
 
-        if (c < -max_loop):
-            break
+    #while c > 0 or (paddle_x - (paddle_size[0] if direction < 0 else 0) < ball_pos[0] < paddle_x + (
+    #        paddle_size[0] if direction > 0 else 0) and
+    #                paddle_y - paddle_size[1] / 2 < ball_pos[1] < paddle_y + paddle_size[
+    #                    1] / 2):
+    #    ball_pos[0] += ball_vel[0] * 0.1 * move_factor
+    #    ball_pos[1] += ball_vel[1] * 0.1 * move_factor
+    #    c -= 1
+
+ #       if c < -max_loop:
+  #          if debug: print("Max loop adjusting after hit")
+   #         break
 
     return ball_pos, ball_vel
 
@@ -123,7 +154,9 @@ def hit_paddle(paddle_x, paddle_y, ball_pos, ball_vel, paddle_size, ball_size, t
     hit = False
     n = 0
     while not 0 < ball_pos[0] < table_size[0]:
+        n += 1
         if n > max_loop:
+            if debug: print("Max loop while trying to hit paddle")
             break
         g = int((ball_vel[0] ** 2 + ball_vel[1] ** 2) ** .5)
         move_factor = 1. / g if g > 0 else 1.0
@@ -136,7 +169,6 @@ def hit_paddle(paddle_x, paddle_y, ball_pos, ball_vel, paddle_size, ball_size, t
                                         table_size, direction, move_factor, hit)
             hit = True
         else:
-            #print("Moving")
             ball_pos[0] += ball_vel[0] * move_factor
             ball_pos[1] += ball_vel[1] * move_factor
 
@@ -329,43 +361,196 @@ else:
     Move to position
 """
 
+def calc_minimax(hitting_paddle_pos, next_paddle_pos, t_till_hit, pre_hit_ball_pos, pre_hit_ball_vel, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_VEL, direction):
+    highest_reach = hitting_paddle_pos[1] + (t_till_hit - 10) * PADDLE_VEL
+    upper_end = int(pre_hit_ball_pos[1] + PADDLE_SIZE[1] / 2) + 0.5
+    upper_limit = TABLE_SIZE[1] - PADDLE_SIZE[1] / 2 + BALL_SIZE[1]
+
+    lowest_reach = hitting_paddle_pos[1] - (t_till_hit - 10) * PADDLE_VEL
+    lower_end = int(pre_hit_ball_pos[1] - PADDLE_SIZE[1] / 2) - 0.5
+    lower_limit = PADDLE_SIZE[1] / 2 - BALL_SIZE[1]
+
+    upper_bound = min(highest_reach, upper_end, upper_limit)
+    lower_bound = max(lowest_reach, lower_end, lower_limit)
+
+    search_range = upper_bound - lower_bound
+    if search_range<0:
+        return False
+    t_to_search = t_till_hit - (PADDLE_VEL * search_range / 2) - 2  # safety net of 2 ticks
+
+    n_searches = int(t_to_search * time_per_t / time_per_search)
+    step = -int(search_range // -n_searches)
+
+    if debug: print("Searching {} to {} ({}), doing {} by {} in {}".format(lower_bound, upper_bound,
+                                                                          upper_bound-lower_bound,
+                                                                            n_searches,
+                                                                            step,
+                                                                            t_to_search))
+
+    results = []
+    best_y, best_score = (upper_bound + lower_bound) / 2, -100000
+    for y in range(int(lower_bound), int(upper_bound)):
+        y = y + 0.5
+
+        this_ball_pos = [pre_hit_ball_pos[0], pre_hit_ball_pos[1]]
+        this_ball_vel = (pre_hit_ball_vel[0], pre_hit_ball_vel[1])
+        g = int((this_ball_vel[0] ** 2 + this_ball_vel[1] ** 2) ** .5)
+        move_factor = 1. / g if g > 0 else 1.0
+        this_ball_pos = move_to_paddle(y, this_ball_pos, this_ball_vel, PADDLE_SIZE, TABLE_SIZE, move_factor)
+        if not this_ball_pos:
+            score = -1000000
+        else:
+            this_ball_pos, this_ball_vel = hit_paddle(hitting_paddle_pos[0], y, this_ball_pos, this_ball_vel, PADDLE_SIZE, BALL_SIZE, TABLE_SIZE, direction)
+
+            g = int((this_ball_vel[0] ** 2 + this_ball_vel[1] ** 2) ** .5)
+            move_factor = 1. / g if g > 0 else 1.0
+            this_ball_pos, this_ball_vel = move_to_paddle_x(next_paddle_pos[0], this_ball_pos, this_ball_vel, TABLE_SIZE,
+                                                            -direction, move_factor)
+            score = abs((this_ball_pos[1] - next_paddle_pos[1]) * this_ball_vel[0])
+            results.append((y, (this_ball_pos[0], this_ball_pos[1]), (this_ball_vel[0], this_ball_vel[1])))
+        if score > best_score:
+            best_score = score
+            best_y = y
+    goal_paddle_y = best_y
+
+    return search_range
+
 time_per_t = 0.0001
-time_per_search = 0.000001
+time_per_search = 0.000025
 inited = 0
 round_end = True
 def initialize(paddle_frect, other_paddle_frect, ball_frect, table_size):
-    global inited, X_OFFSET, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_OFFSET, PADDLE_VEL, prev_ball_pos, prev_paddle_pos, goal_paddle_y, prev_direction, t_since_hit, t_till_hit, round_end, hits
+    global inited, X_OFFSET, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_OFFSET, PADDLE_VEL, prev_ball_pos, prev_ball_vel, prev_paddle_pos, goal_paddle_y, prev_direction, t_since_hit, calculating, results
     X_OFFSET = min(paddle_frect.pos[0], other_paddle_frect.pos[0]) + paddle_frect.size[0]
     TABLE_SIZE = (max(paddle_frect.pos[0], other_paddle_frect.pos[0]) - X_OFFSET - ball_frect.size[0],
                   table_size[1] - ball_frect.size[1])
     PADDLE_SIZE = (paddle_frect.size[0] + ball_frect.size[0], paddle_frect.size[1] + ball_frect.size[0])
     BALL_SIZE = (ball_frect.size[0], ball_frect.size[1])
     PADDLE_OFFSET = paddle_frect.size[1] / 2 - ball_frect.size[1] / 2
-    other_paddle_pos = (other_paddle_frect.pos[0] - X_OFFSET, other_paddle_frect.pos[1] + PADDLE_OFFSET)
-    prev_ball_pos = (ball_frect.pos[0] - X_OFFSET, ball_frect.pos[1])
-    inited = 1
-    t_since_hit = 0
-    t_till_hit = 50
+    prev_ball_pos = [ball_frect.pos[0] - X_OFFSET, ball_frect.pos[1]]
+    prev_ball_vel = (0, 0)
+    prev_paddle_pos = (paddle_frect.pos[0] - X_OFFSET, paddle_frect.pos[1] + PADDLE_OFFSET)
+    goal_paddle_y = 0  # we want to move down at the start
     prev_direction = 0
-    hits = []
+    t_since_hit = 0
+    calculating = 0
+    results = []
 
-
+debug = True
+more_debug = False
+timing = False
 def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
-    global inited, X_OFFSET, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_OFFSET, PADDLE_VEL, prev_ball_pos, prev_ball_vel, prev_paddle_pos, goal_paddle_y, prev_direction, t_since_hit
+    global inited, X_OFFSET, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_OFFSET, PADDLE_VEL, prev_ball_pos, prev_ball_vel, prev_paddle_pos, goal_paddle_y, prev_direction, t_since_hit, calculating, results
+    start = time.time()
+    # ball position is a list, so be careful
     # if first call
     #    do initialize
+    if not inited:
+        initialize(paddle_frect, other_paddle_frect, ball_frect, table_size)
+        if debug: print("Initializing", X_OFFSET, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_OFFSET)
+        inited = 1
     # if second call
     #   calc paddle vel
-    #
-    # calculate better positions
-    # calculate velocity
-    #
-    # if velocity did change
-    #
-    # update previous values
-    # move to goal_paddle_y
+    elif inited == 1:
+        PADDLE_VEL = abs(paddle_frect.pos[1] + PADDLE_OFFSET - prev_paddle_pos[1])
+        if debug: print("2nd Call", PADDLE_VEL)
+        inited = 2
 
-def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
+    # calculate better positions
+    ball_pos = (ball_frect.pos[0] - X_OFFSET, ball_frect.pos[1])  # tuple so I don't change it
+    paddle_pos = (paddle_frect.pos[0] - X_OFFSET, paddle_frect.pos[1] + PADDLE_OFFSET)
+    other_paddle_pos = (other_paddle_frect.pos[0] - X_OFFSET, other_paddle_frect.pos[1] + PADDLE_OFFSET)
+
+    # calculate velocity
+    ball_vel = ((ball_pos[0] - prev_ball_pos[0]), (ball_pos[1] - prev_ball_pos[1]))
+
+    # figure our if we hit
+    if paddle_pos[0] > other_paddle_pos[0]:
+        side = 1
+        paddle_pos = (paddle_pos[0] - BALL_SIZE[0], paddle_pos[1])
+    else:
+        side = -1
+        other_paddle_pos = (other_paddle_pos[0] - BALL_SIZE[0], other_paddle_pos[1])
+    direction = 1 if ball_vel[0] > 0 else -1
+
+    if direction == side:
+        hitting_paddle_pos = paddle_pos
+        next_paddle_pos = other_paddle_pos
+    else:
+        hitting_paddle_pos = other_paddle_pos
+        next_paddle_pos = paddle_pos
+
+    # check if round reset
+    if ball_pos[0] == TABLE_SIZE[0] / 2 and ball_pos[1] == TABLE_SIZE[1] / 2 and (prev_ball_pos[0] < 0 or TABLE_SIZE[0] < prev_ball_pos[0]):
+        goal_paddle_y = TABLE_SIZE[1] / 2
+        prev_direction = 0
+        if debug: print("GAME OVER")
+
+    if prev_direction != direction:
+        t_since_hit = 0
+        calculating = 0  # direction has changed so we have not done any calculations for this direction yet
+    else:
+        t_since_hit += 1
+
+    # if velocity is valid
+    if prev_ball_vel == ball_vel and t_since_hit > 1:  # if the velocities are reliable
+        #   calculate the first intercept
+        g = int((ball_vel[0] ** 2 + ball_vel[1] ** 2) ** .5)
+        move_factor = 1. / g if g > 0 else 1.0
+
+        pre_hit_ball_pos, pre_hit_ball_vel = move_to_paddle_x(hitting_paddle_pos[0], [ball_pos[0], ball_pos[1]],
+                                                              ball_vel, TABLE_SIZE, direction, move_factor)
+
+        t_till_hit = abs(-((pre_hit_ball_pos[0] - ball_pos[0]) // -ball_vel[0]))
+
+        if direction == side:  # if ball is coming
+            if calculating < 1:  # | -2 done predict | -1 doing predict | 0 none | 1 doing minmax | 2 done minmax
+                if debug: print("Starting Minimax")
+                calculating = 1
+                calc_minimax(hitting_paddle_pos, next_paddle_pos, t_till_hit, pre_hit_ball_pos,
+                             pre_hit_ball_vel, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_VEL, direction)
+                if debug: print("Done Minimax")
+                #def foo():
+                #    for i in range(1000):
+                #        calc_minimax(hitting_paddle_pos, next_paddle_pos, t_till_hit, pre_hit_ball_pos,
+                #                     pre_hit_ball_vel, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_VEL, direction)
+
+                #import cProfile
+                #cProfile.run(cProfile.runctx('foo()', None, locals()))
+                #res = 1.
+            else:
+                goal_paddle_y = pre_hit_ball_pos[1]
+        else:
+            if calculating > -1:
+                if debug: print("Starting Prediction")
+                calculating = -1
+                pass # do prediction
+            else:
+                goal_paddle_y = TABLE_SIZE[1] / 2
+
+    # if calculations are done
+    #   if to us
+    #       go to best pos
+    #   if away
+    #       still go to best
+
+    # update previous values
+    prev_ball_pos = ball_pos
+    prev_ball_vel = ball_vel
+    prev_paddle_pos = paddle_pos
+    prev_direction = direction
+
+    # move to goal_paddle_y
+    if more_debug and goal_paddle_y == paddle_pos[1]: print("Arrived")
+    if timing: print("pong_ai():", (time.time() - start))
+    if paddle_pos[1] > goal_paddle_y:
+        return "up"
+    elif paddle_pos[1] < goal_paddle_y:
+        return "down"
+    else:
+        return "skip"
+
+def pong_ai1(paddle_frect, other_paddle_frect, ball_frect, table_size):
     global inited, X_OFFSET, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_OFFSET, PADDLE_VEL, prev_ball_pos, prev_paddle_pos, goal_paddle_y, prev_direction, t_since_hit, t_till_hit, round_end, hits
     if not inited:
         initialize(paddle_frect, other_paddle_frect, ball_frect, table_size)
