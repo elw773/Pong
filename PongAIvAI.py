@@ -388,7 +388,7 @@ def init_game():
     dust_error = 0.00
     init_speed_mag = 2
     timeout = 0.0001
-    clock_rate = 500
+    clock_rate = 200
     turn_wait_rate = 3
     score_to_win = 5
 
@@ -407,7 +407,7 @@ def init_game():
     import minified_ai
     import minimax
 
-    paddles[0].move_getter = chaser_ai.pong_ai
+    paddles[0].move_getter = minified_ai.pong_ai
     paddles[1].move_getter = minimax.pong_ai
 
     game_loop(screen, paddles, ball, table_size, clock_rate, turn_wait_rate, score_to_win, 1)
