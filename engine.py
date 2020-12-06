@@ -87,6 +87,7 @@ class Paddle:
     def move(self, enemy_frect, ball_frect, table_size):
         direction = self.move_getter(
             self.frect.copy(), enemy_frect.copy(), ball_frect.copy(), tuple(table_size))
+
         if direction == "up":
             self.frect.move_ip(0, -self.speed)
         elif direction == "down":
@@ -280,7 +281,7 @@ def play(ai1, ai2):
     wall_bounce = 1.00
     dust_error = 0.00
     init_speed_mag = 2
-    score_to_win = 100
+    score_to_win = 200
 
     paddles = [Paddle((20, table_size[1]/2), paddle_size, paddle_speed, max_angle,  1),
                Paddle((table_size[0]-20, table_size[1]/2), paddle_size, paddle_speed, max_angle, 0)]
@@ -305,7 +306,7 @@ def play(ai1, ai2):
 
 if __name__ == "__main__":
     from minimax import pong_ai as ai1 ## !!!
-    from minified_ai import pong_ai as ai2
+    from chaser_ai import pong_ai as ai2
 
     results = play(ai1, ai2)
     """ 

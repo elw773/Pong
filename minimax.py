@@ -6,7 +6,7 @@ import numpy as np
 max_angle = 45
 math_pi = math.pi
 paddle_bounce = 1.2
-max_loop = 1000
+max_loop = 400
 
 import threading
 from timeit import default_timer as timer
@@ -620,7 +620,7 @@ def calc_posibilities(hitting_paddle_pos, next_paddle_pos, t_till_hit, pre_hit_b
               pre_hit_ball_pos, pre_hit_ball_vel, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_VEL, direction, flag, done), daemon=True)
     calc_thread.start()
 
-    if timing: print("Posibilities", (timer() - start), search_range * time_per_search / time_per_t, t_to_search)
+    #if timing: print("Posibilities", (timer() - start), search_range * time_per_search / time_per_t, t_to_search)
 
     # calc_hits(lower_bound, upper_bound, step, hitting_paddle_pos, next_paddle_pos, t_till_hit,
     #         pre_hit_ball_pos, pre_hit_ball_vel, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_VEL, direction, flag, done)
@@ -653,7 +653,7 @@ more_debug = False
 timing = False
 def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
     global inited, X_OFFSET, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_OFFSET, PADDLE_VEL, prev_ball_pos, prev_ball_vel, prev_paddle_pos, goal_paddle_y, prev_direction, t_since_hit, t_till_hit, calculating, results
-    start = time.time()
+    start = time.time_ns()
     # ball position is a list, so be careful
     # if first call
     #    do initialize
@@ -730,6 +730,7 @@ def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
                 calc_posibilities(hitting_paddle_pos, next_paddle_pos, t_till_hit, pre_hit_ball_pos,
                                   pre_hit_ball_vel, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_VEL, direction, -1, -2)
             goal_paddle_y = TABLE_SIZE[1] / 2
+        elapsed = (time.time_ns() - start) / 1e6
 
     if ball_vel[0] != 0 and ball_vel[1] != 0:
         if direction == side and calculating == 2:
@@ -738,16 +739,20 @@ def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
             lowest_reach = hitting_paddle_pos[1] - t_till_hit * PADDLE_VEL
             for hit in results:
                 if lowest_reach < hit[0] < highest_reach:
-                    t_to_them = t_till_hit + (hit[1] - paddle_pos[0]) // hit[3] + 30
-                    t_to_intercept = abs(hit[2] - other_paddle_pos[1]) // PADDLE_VEL
+                    t_to_them = t_till_hit + (hit[1] - paddle_pos[0]) // hit[3]
+                    t_to_intercept = (abs(hit[2] - other_paddle_pos[1]) - PADDLE_SIZE[1]/2) // PADDLE_VEL
+                    score = t_to_intercept - t_to_them
                     if t_to_intercept > t_to_them:
-                        score = t_to_intercept - t_to_them
-                        if score > best_score:
-                            best_y, best_score = hit[0], score
+                        score *= 10000
+                    else:
+                        score *= hit[3]
+                    if score > best_score:
+                        best_y, best_score = hit[0], score
             if best_y > -1:
                 goal_paddle_y = best_y
                 if debug: print("Predict I win", best_score)
-        if direction * side == -1 and calculating == -2:
+
+        if direction * side == -1:
             g = int((ball_vel[0] ** 2 + ball_vel[1] ** 2) ** .5)
             move_factor = 1. / g if g > 0 else 1.0
 
@@ -760,21 +765,25 @@ def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
                                                pre_hit_ball_vel[1], TABLE_SIZE, BALL_SIZE, PADDLE_SIZE,
                                                PADDLE_VEL, direction, move_factor)
 
-            sum, sum_of_weights = 0, 0
-            highest_reach = hitting_paddle_pos[1] + t_till_hit * PADDLE_VEL
-            lowest_reach = hitting_paddle_pos[1] - t_till_hit * PADDLE_VEL
-            for hit in results:
-                if lowest_reach < hit[0] < highest_reach:
-                    t_to_me = t_till_hit + (hit[1] - other_paddle_pos[0]) // hit[3] + 30
-                    t_to_intercept = abs(hit[2] - paddle_pos[1]) // PADDLE_VEL
-                    weight = 1#sigmoid(t_to_intercept - t_to_me)
-                    sum += hit[0] * weight
-                    sum_of_weights += weight
-            if sum_of_weights != 0 and t_till_hit > 50:
-                goal_paddle_y = sum / sum_of_weights
-            elif not prediction is None:
+            if not prediction is None:
                 goal_paddle_y = prediction[2]
                 if more_debug: print("Predict", pre_hit_ball_pos[1], goal_paddle_y)
+
+            if calculating == -2:
+                sum, sum_of_weights = 0, 0
+                highest_reach = hitting_paddle_pos[1] + t_till_hit * PADDLE_VEL
+                lowest_reach = hitting_paddle_pos[1] - t_till_hit * PADDLE_VEL
+                for hit in results:
+                    if lowest_reach < hit[0] < highest_reach:
+                        t_to_me = t_till_hit + (hit[1] - other_paddle_pos[0]) // hit[3]
+                        t_to_intercept = (abs(hit[2] - paddle_pos[1]) - PADDLE_SIZE[1]/2) // PADDLE_VEL
+                        weight = hit[3]
+                        if weight <= 0:
+                           weight = 0
+                        sum += hit[0] * weight
+                        sum_of_weights += weight
+                if sum_of_weights != 0 and t_till_hit * PADDLE_VEL > PADDLE_SIZE[1]/4:
+                    goal_paddle_y = ((sum / sum_of_weights) + goal_paddle_y) / 2
 
     # update previous values
     prev_ball_pos = ball_pos
@@ -784,7 +793,9 @@ def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
 
     # move to goal_paddle_y
     if more_debug and goal_paddle_y == paddle_pos[1]: print("Arrived")
-    if timing: print("pong_ai():", (time.time() - start))
+    elapsed = (time.time_ns() - start) / 10e6
+    if timing and elapsed > 0.1:
+        print("pong_ai():", elapsed)
     if paddle_pos[1] > goal_paddle_y:
         return "up"
     elif paddle_pos[1] < goal_paddle_y:
