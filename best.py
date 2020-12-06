@@ -1,14 +1,22 @@
-# Ewan Wai
-import math
-import threading
-import time
-from time import perf_counter_ns as timer
+# Ted Pinkerton and Ewan Wai
 
-max_n = 35  # LOWER THIS IF I AM TIMING OUT
+import math
+import numpy as np
+
 max_angle = 45
 math_pi = math.pi
 paddle_bounce = 1.2
 max_loop = 400
+
+import threading
+import time
+import numpy
+
+
+def sigmoid(x):
+    y = numpy.exp(x)
+    return y / (1 + y)
+
 
 def move_to_paddle_x(paddle_x, ball_x, ball_y, ball_dx, ball_dy, table_size, direction, move_factor):
     """Calculates the position and velocity of the ball when it reaches the paddle_x
@@ -17,8 +25,8 @@ def move_to_paddle_x(paddle_x, ball_x, ball_y, ball_dx, ball_dy, table_size, dir
     n = 0
     while (paddle_x - ball_x) * direction > 0:
         n += 1
-        if n > max_loop:
-            #if debug: print("Max loop moving to paddle")
+        if (n > max_loop):
+            if debug: print("Max loop moving to paddle")
             break
         wall_y = -1
         if ball_dy > 0:
@@ -68,6 +76,23 @@ def move_to_paddle(hitting_paddle_y, ball_x, ball_y, ball_dx, ball_dy, paddle_si
 
 def do_hit(paddle_x, paddle_y, ball_x, ball_y, ball_dx, ball_dy, paddle_size, ball_size, table_size, direction,
            move_factor, hit=False):
+    e = -((ball_x - paddle_x) // (ball_dx * -0.1 * move_factor))
+
+    if ball_dy > 0:
+        wall_y = table_size[1] + 1
+        paddle_y_bound = paddle_y - paddle_size[1] / 2
+    else:
+        wall_y = -1
+        paddle_y_bound = paddle_y + paddle_size[1] / 2
+    d = -((ball_y - wall_y) // (ball_dy * -0.1 * move_factor))
+    f = -((ball_y - paddle_y_bound) // (ball_dy * -0.1 * move_factor))
+    if f > 0:
+        e = min(e, f)
+    if d > 0:
+        e = max(e, d)
+
+    # ball_x -= ball_dx * 0.1 * move_factor * e
+    # ball_y -= ball_dy * 0.1 * move_factor * e
     c = 0
     while (ball_y > table_size[1] or ball_y < 0) or \
             (paddle_x - (paddle_size[0] if direction < 0 else 0) < ball_x < paddle_x + (
@@ -77,7 +102,10 @@ def do_hit(paddle_x, paddle_y, ball_x, ball_y, ball_dx, ball_dy, paddle_size, ba
         ball_x -= ball_dx * 0.1 * move_factor
         ball_y -= ball_dy * 0.1 * move_factor
         if c > max_loop:
+            if debug: print("Max loop adjusting before hit")
             break
+
+    # c = e
 
     rel_dist_from_c = (ball_y - paddle_y) / (paddle_size[1] - ball_size[1])
     rel_dist_from_c = min(0.5, rel_dist_from_c)
@@ -113,10 +141,13 @@ def do_hit(paddle_x, paddle_y, ball_x, ball_y, ball_dx, ball_dy, paddle_size, ba
         ball_y += ball_dy * 0.1 * move_factor
         c -= 1
         if c < -max_loop:
+            if debug: print("Max loop adjusting after hit")
             break
 
     e = -((ball_x - paddle_x) // (ball_dx * -0.1 * move_factor))
     c = max(e, c)
+    # ball_x += ball_dx * 0.1 * move_factor * c
+    # ball_y += ball_dy * 0.1 * move_factor * c
 
     return (ball_x, ball_y), (ball_dx, ball_dy)
 
@@ -128,6 +159,7 @@ def hit_paddle(paddle_x, paddle_y, ball_x, ball_y, ball_dx, ball_dy, paddle_size
     while not 0 < ball_x < table_size[0]:
         n += 1
         if n > 200:
+            if debug: print("Max loop while trying to hit paddle")
             return (None, None), (None, None)
         g = int((ball_dx ** 2 + ball_dy ** 2) ** .5)
         move_factor = 1. / g if g > 0 else 1.0
@@ -175,6 +207,7 @@ def calc_hits(lower_bound, upper_bound, step, hitting_paddle_pos, next_paddle_po
     global calculating, results
     y1 = lower_bound
     y2 = upper_bound
+    calculating = flag
     results = []  # [paddle_y, hit_x, hit_y, hit_velx, hit_vely]
 
     g = int((pre_hit_ball_vel[0] ** 2 + pre_hit_ball_vel[1] ** 2) ** .5)
@@ -204,19 +237,12 @@ def calc_hits(lower_bound, upper_bound, step, hitting_paddle_pos, next_paddle_po
             results.append(result)
 
     calculating = done
-
-
-def do_calculations():
-    global calculating
-    while True:
-        if calculating == -1 or calculating == 1:
-            calc_hits(*calc_params)
-        time.sleep(time_per_t)
+    if debug: print("Done calculations", done)
 
 
 def calc_posibilities(hitting_paddle_pos, next_paddle_pos, t_till_hit, pre_hit_ball_pos, pre_hit_ball_vel, TABLE_SIZE,
                       BALL_SIZE, PADDLE_SIZE, PADDLE_VEL, direction, flag, done):
-    global calculating, calc_params, results
+    global calculating, calc_thread
     highest_reach = hitting_paddle_pos[1] + (t_till_hit) * PADDLE_VEL
     upper_end = int(pre_hit_ball_pos[1] + PADDLE_SIZE[1] / 2) + 10.5
     upper_limit = TABLE_SIZE[1] - PADDLE_SIZE[1] / 2 + BALL_SIZE[1]
@@ -240,17 +266,30 @@ def calc_posibilities(hitting_paddle_pos, next_paddle_pos, t_till_hit, pre_hit_b
 
     step = -int(search_range // -n_searches)
 
+    if debug: print("Searching {} to {} ({}), doing {} by {} in {}".format(lower_bound, upper_bound,
+                                                                           upper_bound - lower_bound,
+                                                                           n_searches,
+                                                                           step,
+                                                                           t_to_search))
+
     results = []
 
-    calculating = flag
-    calc_params = (lower_bound, upper_bound, step, hitting_paddle_pos, next_paddle_pos, t_till_hit,
-                   pre_hit_ball_pos, pre_hit_ball_vel, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_VEL,
-                   direction, flag, done)
+    calc_thread = threading.Thread(target=calc_hits, args=(
+    lower_bound, upper_bound, step, hitting_paddle_pos, next_paddle_pos, t_till_hit,
+    pre_hit_ball_pos, pre_hit_ball_vel, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_VEL, direction, flag, done),
+                                   daemon=True)
+    calc_thread.start()
+
+    # if timing: print("Posibilities", (timer() - start), search_range * time_per_search / time_per_t, t_to_search)
+
+    # calc_hits(lower_bound, upper_bound, step, hitting_paddle_pos, next_paddle_pos, t_till_hit,
+    #         pre_hit_ball_pos, pre_hit_ball_vel, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_VEL, direction, flag, done)
 
 
 time_per_t = 0.0001
 time_per_search = 0.000023
 inited = 0
+round_end = True
 
 
 def initialize(paddle_frect, other_paddle_frect, ball_frect, table_size):
@@ -274,20 +313,25 @@ def initialize(paddle_frect, other_paddle_frect, ball_frect, table_size):
     done_calculating = True
     results = []
 
+debug = False
+more_debug = False
+timing = False
 def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
     global inited, X_OFFSET, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_OFFSET, PADDLE_VEL, prev_ball_pos, prev_ball_vel, prev_paddle_pos, goal_paddle_y, prev_direction, t_since_hit, t_till_hit, calculating, results
     global best_y, best_score, weighted_sum, sum_of_weights, i
-    start = timer()
+    start = time.time_ns()
     # ball position is a list, so be careful
     # if first call
     #    do initialize
     if not inited:
         initialize(paddle_frect, other_paddle_frect, ball_frect, table_size)
+        if debug: print("Initializing", X_OFFSET, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_OFFSET)
         inited = 1
     # if second call
     #   calc paddle vel
     elif inited == 1:
         PADDLE_VEL = abs(paddle_frect.pos[1] + PADDLE_OFFSET - prev_paddle_pos[1])
+        if debug: print("2nd Call", PADDLE_VEL)
         inited = 2
 
     # calculate better positions
@@ -320,6 +364,7 @@ def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
     if ball_pos[0] == TABLE_SIZE[0] / 2 and ball_pos[1] == TABLE_SIZE[1] / 2 and (prev_ball_pos[0] < 0 or TABLE_SIZE[0] < prev_ball_pos[0]):
         goal_paddle_y = TABLE_SIZE[1] / 2
         prev_direction = 0
+        if debug: print("GAME OVER")
 
     if prev_direction != direction:
         t_since_hit = 0
@@ -342,12 +387,14 @@ def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
 
         if direction == side:  # if ball is coming
             if calculating < 1:  # | -2 done predict | -1 doing predict | 0 none | 1 doing minmax | 2 done minmax | 3 minimax not viable
+                if debug: print("Starting Minimax")
                 calc_posibilities(hitting_paddle_pos, next_paddle_pos, t_till_hit, pre_hit_ball_pos,
                                   pre_hit_ball_vel, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_VEL, direction, 1, 2)
                 started_thread = True
             goal_paddle_y = pre_hit_ball_pos[1]
         else:
             if calculating > -1:
+                if debug: print("Starting Prediction")
                 calc_posibilities(hitting_paddle_pos, next_paddle_pos, t_till_hit, pre_hit_ball_pos,
                                   pre_hit_ball_vel, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_VEL, direction, -1, -2)
                 started_thread = True
@@ -358,16 +405,17 @@ def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
             highest_reach = hitting_paddle_pos[1] + t_till_hit * PADDLE_VEL
             lowest_reach = hitting_paddle_pos[1] - t_till_hit * PADDLE_VEL
             n = 0
-            while i < len(results) and n < 35:
+            while i < len(results) and n < 20:
                 hit = results[i]
                 if lowest_reach < hit[0] < highest_reach:
                     t_to_them = t_till_hit + (hit[1] - paddle_pos[0]) // hit[3]
                     t_to_intercept = (abs(hit[2] - other_paddle_pos[1]) - PADDLE_SIZE[1]/2) // PADDLE_VEL
                     score = t_to_intercept - t_to_them
-                    if t_to_intercept > t_to_them - 5:
+                    if t_to_intercept > t_to_them:
                         score *= 1000000
                     else:
-                        score = abs(hit[2] - TABLE_SIZE[1]/2)
+                        score = abs(hit[2] - TABLE_SIZE[1]/2) ** 2 * hit[3]
+                        #score *= hit[3]
                     if score > best_score:
                         best_y, best_score = hit[0], score
                     n += 1
@@ -376,6 +424,7 @@ def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
                 i = 0
                 if best_y > -1:
                     goal_paddle_y = best_y
+                    if debug: print("Predict I win", best_score)
                 best_y, best_score = -1, -1
 
         if direction * side == -1:
@@ -393,17 +442,20 @@ def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
 
             if not prediction is None:
                 goal_paddle_y = prediction[2]
+                if more_debug: print("Predict", pre_hit_ball_pos[1], goal_paddle_y)
 
             if calculating == -2:
                 highest_reach = hitting_paddle_pos[1] + t_till_hit * PADDLE_VEL
                 lowest_reach = hitting_paddle_pos[1] - t_till_hit * PADDLE_VEL
                 n = 0
-                while i < len(results) and n < 35:
+                while i < len(results) and n < 20:
                     hit = results[i]
                     if lowest_reach < hit[0] < highest_reach:
+                        t_to_me = t_till_hit + (hit[1] - other_paddle_pos[0]) // hit[3]
+                        t_to_intercept = (abs(hit[2] - paddle_pos[1]) - PADDLE_SIZE[1]/2) // PADDLE_VEL
                         weight = hit[3]
                         if weight <= 0:
-                            weight = 0
+                           weight = 0
                         weighted_sum += hit[0] * weight
                         sum_of_weights += weight
                         n += 1
@@ -421,6 +473,10 @@ def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
     prev_direction = direction
 
     # move to goal_paddle_y
+    if more_debug and goal_paddle_y == paddle_pos[1]: print("Arrived")
+    elapsed = (time.time_ns() - start) / 10e6
+    #if elapsed > 0.101 and started_thread:
+        #print("pong_ai():", elapsed)
     if paddle_pos[1] > goal_paddle_y:
         return "up"
     elif paddle_pos[1] < goal_paddle_y:
@@ -428,6 +484,3 @@ def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
     else:
         return "skip"
 
-calculating = 0
-calc_thread = threading.Thread(target=do_calculations, daemon=True)
-calc_thread.start()

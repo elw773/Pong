@@ -402,11 +402,13 @@ def init_game():
 
     import minified_ai
     import minimax
-    import pong_ai
-    import throng
+    import pong_ai_slower
+    import best
+    import chaser_ai
+    import pong_ai_working
 
-    paddles[0].move_getter = minified_ai.pong_ai
-    paddles[1].move_getter = pong_ai.pong_ai
+    paddles[0].move_getter = chaser_ai.pong_ai
+    paddles[1].move_getter = pong_ai_working.pong_ai
 
     game_loop(screen, paddles, ball, table_size, clock_rate, turn_wait_rate, score_to_win, 1)
     ball = Ball(table_size, ball_size, paddle_bounce, wall_bounce, dust_error, init_speed_mag)
