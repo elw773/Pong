@@ -333,7 +333,7 @@ def play(ai1, ai2):
 
 if __name__ == "__main__":
     from pong_ai import pong_ai as ai1 ## !!!
-    from best import pong_ai as ai2
+    from chaser_ai import pong_ai as ai2
 
     results = play(ai1, ai2)
     """ 

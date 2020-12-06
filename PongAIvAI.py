@@ -197,10 +197,8 @@ class Ball:
                      math.cos(-theta) * v[1] + math.sin(-theta) * v[0]]
 
                 # Bona fide hack: enforce a lower bound on horizontal speed and disallow back reflection
-                wtf = False
                 if v[0] * (
                         2 * paddle.facing - 1) < 1:  # ball is not traveling (a) away from paddle (b) at a sufficient speed
-                    wtf = True
                     v[1] = (v[1] / abs(v[1])) * math.sqrt(
                         v[0] ** 2 + v[1] ** 2 - 1)  # transform y velocity so as to maintain the speed
                     v[0] = (
@@ -211,9 +209,6 @@ class Ball:
                 if not paddle is self.prev_bounce:
                     self.speed = (v[0] * self.paddle_bounce, v[1] * self.paddle_bounce)
                 else:
-                    if not wtf:
-                        print("wtf"*60)
-                    print("wtf" * 60)
                     self.speed = (v[0], v[1])
 
                 self.prev_bounce = paddle
@@ -407,7 +402,7 @@ def init_game():
     import chaser_ai
     import pong_ai
 
-    paddles[0].move_getter = best.pong_ai
+    paddles[0].move_getter = chaser_ai.pong_ai
     paddles[1].move_getter = pong_ai.pong_ai
 
     game_loop(screen, paddles, ball, table_size, clock_rate, turn_wait_rate, score_to_win, 1)
