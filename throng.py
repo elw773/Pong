@@ -10,6 +10,7 @@ paddle_bounce = 1.2
 max_loop = 400
 
 import threading
+import multiprocessing
 from timeit import default_timer as timer
 import time
 import numpy
@@ -428,7 +429,7 @@ def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
     #    do initialize
     if not inited:
         initialize(paddle_frect, other_paddle_frect, ball_frect, table_size)
-        scorer = threading.Thread(target=process_hits, daemon=True)
+        scorer = multiprocessing.Process(target=process_hits, daemon=True)
         if debug: print("Initializing", X_OFFSET, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_OFFSET)
         inited = 1
     # if second call
@@ -487,12 +488,12 @@ def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
 
         if calculating == 0:  # if we have not started calculations
             if direction == side:
-                towards_calculator = threading.Thread(target=towards, daemon=True)
+                towards_calculator = multiprocessing.Process(target=towards, daemon=True)
                 towards_calculator.start()
                 if debug: print("Starting towards calculation")
                 calculating = 1
             else:
-                away_calculator = threading.Thread(target=away, daemon=True)
+                away_calculator = multiprocessing.Process(target=away, daemon=True)
                 away_calculator.start()
                 if debug: print("Starting away calculation")
                 calculating = -1

@@ -87,6 +87,9 @@ class Paddle:
     def move(self, enemy_frect, ball_frect, table_size):
         direction = self.move_getter(
             self.frect.copy(), enemy_frect.copy(), ball_frect.copy(), tuple(table_size))
+        #direction = timeout(self.move_getter,
+        #                    (self.frect.copy(), enemy_frect.copy(), ball_frect.copy(), tuple(table_size)), {},
+        #                    0.0001)
 
         if direction == "up":
             self.frect.move_ip(0, -self.speed)
@@ -236,6 +239,30 @@ class Ball:
         # print "poition: ", self.frect.pos
 
 
+def timeout(func, args=(), kwargs={}, timeout_duration=1, default=None):
+    '''From:
+    http://code.activestate.com/recipes/473878-timeout-function-using-threading/'''
+    import threading
+    class InterruptableThread(threading.Thread):
+        def __init__(self):
+            threading.Thread.__init__(self)
+            self.result = None
+
+        def run(self):
+            try:
+                self.result = func(*args, **kwargs)
+            except:
+                self.result = default
+
+    it = InterruptableThread()
+    it.start()
+    it.join(timeout_duration)
+    if it.is_alive():
+        print("TIMEOUT")
+        return default
+    else:
+        return it.result
+
 def check_point(score, ball, table_size):
     if ball.frect.pos[0]+ball.size[0]/2 < 0:
         score[1] += 1
@@ -305,8 +332,8 @@ def play(ai1, ai2):
 
 
 if __name__ == "__main__":
-    from minimax import pong_ai as ai1 ## !!!
-    from chaser_ai import pong_ai as ai2
+    from pong_ai import pong_ai as ai1 ## !!!
+    from minified_ai import pong_ai as ai2
 
     results = play(ai1, ai2)
     """ 
