@@ -26,7 +26,7 @@ def move_to_paddle_x(paddle_x, ball_x, ball_y, ball_dx, ball_dy, table_size, dir
     while (paddle_x - ball_x) * direction > 0:
         n += 1
         if (n > max_loop):
-            if debug: print("Max loop moving to paddle")
+            #if debug: print("Max loop moving to paddle")
             break
         wall_y = -1
         if ball_dy > 0:
@@ -102,7 +102,7 @@ def do_hit(paddle_x, paddle_y, ball_x, ball_y, ball_dx, ball_dy, paddle_size, ba
         ball_x -= ball_dx * 0.1 * move_factor
         ball_y -= ball_dy * 0.1 * move_factor
         if c > max_loop:
-            if debug: print("Max loop adjusting before hit")
+            #if debug: print("Max loop adjusting before hit")
             break
 
     # c = e
@@ -141,7 +141,7 @@ def do_hit(paddle_x, paddle_y, ball_x, ball_y, ball_dx, ball_dy, paddle_size, ba
         ball_y += ball_dy * 0.1 * move_factor
         c -= 1
         if c < -max_loop:
-            if debug: print("Max loop adjusting after hit")
+            #if debug: print("Max loop adjusting after hit")
             break
 
     e = -((ball_x - paddle_x) // (ball_dx * -0.1 * move_factor))
@@ -159,7 +159,7 @@ def hit_paddle(paddle_x, paddle_y, ball_x, ball_y, ball_dx, ball_dy, paddle_size
     while not 0 < ball_x < table_size[0]:
         n += 1
         if n > 200:
-            if debug: print("Max loop while trying to hit paddle")
+            #if debug: print("Max loop while trying to hit paddle")
             return (None, None), (None, None)
         g = int((ball_dx ** 2 + ball_dy ** 2) ** .5)
         move_factor = 1. / g if g > 0 else 1.0
@@ -237,7 +237,7 @@ def calc_hits(lower_bound, upper_bound, step, hitting_paddle_pos, next_paddle_po
             results.append(result)
 
     calculating = done
-    if debug: print("Done calculations", done)
+    #if debug: print("Done calculations", done)
 
 
 def calc_posibilities(hitting_paddle_pos, next_paddle_pos, t_till_hit, pre_hit_ball_pos, pre_hit_ball_vel, TABLE_SIZE,
@@ -266,11 +266,11 @@ def calc_posibilities(hitting_paddle_pos, next_paddle_pos, t_till_hit, pre_hit_b
 
     step = -int(search_range // -n_searches)
 
-    if debug: print("Searching {} to {} ({}), doing {} by {} in {}".format(lower_bound, upper_bound,
-                                                                           upper_bound - lower_bound,
-                                                                           n_searches,
-                                                                           step,
-                                                                           t_to_search))
+    #if debug: print("Searching {} to {} ({}), doing {} by {} in {}".format(lower_bound, upper_bound,
+    #                                                                       upper_bound - lower_bound,
+    #                                                                       n_searches,
+    #                                                                       step,
+    #                                                                       t_to_search))
 
     results = []
 
@@ -325,13 +325,13 @@ def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
     #    do initialize
     if not inited:
         initialize(paddle_frect, other_paddle_frect, ball_frect, table_size)
-        if debug: print("Initializing", X_OFFSET, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_OFFSET)
+        #if debug: print("Initializing", X_OFFSET, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_OFFSET)
         inited = 1
     # if second call
     #   calc paddle vel
     elif inited == 1:
         PADDLE_VEL = abs(paddle_frect.pos[1] + PADDLE_OFFSET - prev_paddle_pos[1])
-        if debug: print("2nd Call", PADDLE_VEL)
+        #if debug: print("2nd Call", PADDLE_VEL)
         inited = 2
 
     # calculate better positions
@@ -364,7 +364,7 @@ def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
     if ball_pos[0] == TABLE_SIZE[0] / 2 and ball_pos[1] == TABLE_SIZE[1] / 2 and (prev_ball_pos[0] < 0 or TABLE_SIZE[0] < prev_ball_pos[0]):
         goal_paddle_y = TABLE_SIZE[1] / 2
         prev_direction = 0
-        if debug: print("GAME OVER")
+        #if debug: print("GAME OVER")
 
     if prev_direction != direction:
         t_since_hit = 0
@@ -387,14 +387,14 @@ def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
 
         if direction == side:  # if ball is coming
             if calculating < 1:  # | -2 done predict | -1 doing predict | 0 none | 1 doing minmax | 2 done minmax | 3 minimax not viable
-                if debug: print("Starting Minimax")
+                #if debug: print("Starting Minimax")
                 calc_posibilities(hitting_paddle_pos, next_paddle_pos, t_till_hit, pre_hit_ball_pos,
                                   pre_hit_ball_vel, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_VEL, direction, 1, 2)
                 started_thread = True
             goal_paddle_y = pre_hit_ball_pos[1]
         else:
             if calculating > -1:
-                if debug: print("Starting Prediction")
+                #if debug: print("Starting Prediction")
                 calc_posibilities(hitting_paddle_pos, next_paddle_pos, t_till_hit, pre_hit_ball_pos,
                                   pre_hit_ball_vel, TABLE_SIZE, BALL_SIZE, PADDLE_SIZE, PADDLE_VEL, direction, -1, -2)
                 started_thread = True
@@ -414,7 +414,7 @@ def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
                     if t_to_intercept > t_to_them:
                         score *= 1000000
                     else:
-                        score = abs(hit[2] - TABLE_SIZE[1]/2) ** 2 * hit[3]
+                        score = abs(hit[2] - TABLE_SIZE[1]/2)
                         #score *= hit[3]
                     if score > best_score:
                         best_y, best_score = hit[0], score
@@ -424,7 +424,7 @@ def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
                 i = 0
                 if best_y > -1:
                     goal_paddle_y = best_y
-                    if debug: print("Predict I win", best_score)
+                    #if debug: print("Predict I win", best_score)
                 best_y, best_score = -1, -1
 
         if direction * side == -1:
@@ -442,7 +442,7 @@ def pong_ai(paddle_frect, other_paddle_frect, ball_frect, table_size):
 
             if not prediction is None:
                 goal_paddle_y = prediction[2]
-                if more_debug: print("Predict", pre_hit_ball_pos[1], goal_paddle_y)
+                #if more_debug: print("Predict", pre_hit_ball_pos[1], goal_paddle_y)
 
             if calculating == -2:
                 highest_reach = hitting_paddle_pos[1] + t_till_hit * PADDLE_VEL

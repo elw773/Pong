@@ -308,7 +308,7 @@ def play(ai1, ai2):
     wall_bounce = 1.00
     dust_error = 0.00
     init_speed_mag = 2
-    score_to_win = 200
+    score_to_win = 50
 
     paddles = [Paddle((20, table_size[1]/2), paddle_size, paddle_speed, max_angle,  1),
                Paddle((table_size[0]-20, table_size[1]/2), paddle_size, paddle_speed, max_angle, 0)]
@@ -333,7 +333,7 @@ def play(ai1, ai2):
 
 if __name__ == "__main__":
     from pong_ai import pong_ai as ai1 ## !!!
-    from minified_ai import pong_ai as ai2
+    from best import pong_ai as ai2
 
     results = play(ai1, ai2)
     """ 
