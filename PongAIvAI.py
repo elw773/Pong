@@ -394,15 +394,12 @@ def init_game():
     paddles = [Paddle((20, table_size[1] / 2), paddle_size, paddle_speed, max_angle, 1, timeout),
                Paddle((table_size[0] - 20, table_size[1] / 2), paddle_size, paddle_speed, max_angle, 0, timeout)]
     ball = Ball(table_size, ball_size, paddle_bounce, wall_bounce, dust_error, init_speed_mag)
-
-    import minified_ai
-    import minimax
-    import player
-    import best
+    
+    import old_pong_ai
     import chaser_ai
     import pong_ai
 
-    paddles[0].move_getter = chaser_ai.pong_ai
+    paddles[0].move_getter = old_pong_ai.pong_ai
     paddles[1].move_getter = pong_ai.pong_ai
 
     game_loop(screen, paddles, ball, table_size, clock_rate, turn_wait_rate, score_to_win, 1)
