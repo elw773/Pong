@@ -1,5 +1,5 @@
 # Pong
- AI for 2020 ESC180 Pong Competition
+ AI for 2020 ESC180 Pong Competition (Silver Placement)
  
  [chaser_ai.py](chaser_ai.py) is the sample AI \
  [old_pong_ai.py](old_pong_ai.py) assumes perfect bounces to predict the ball's movements, and scores potential hitting 
